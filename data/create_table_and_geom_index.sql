@@ -14,9 +14,9 @@ There are four categories of how people are physically affected by a crash:
     - unknown if injured (unknown)
 
 Within injuries, there are also four categories:
-    - major (maj_inj)
-    - moderate (mod_inj)
-    - minor (min_inj)
+    - suspected serious injury (sus_serious_inj)
+    - suspected minor injury (sus_minor_inj)
+    - possible injury (possible_inj)
     - unknown severity (unk_inj) - note that NJ does not have this category
 */
 
@@ -42,9 +42,9 @@ CREATE TABLE crash (
     injuries integer NOT NULL,
     uninjured integer,
     unknown integer NOT NULL,
-    maj_inj integer NOT NULL,
-    mod_inj integer NOT NULL,
-    min_inj integer NOT NULL,
+    sus_serious_inj integer NOT NULL,
+    sus_minor_inj integer NOT NULL,
+    possible_inj integer NOT NULL,
     unk_inj integer,
     max_severity text,
     bike_fatalities integer NOT NULL,

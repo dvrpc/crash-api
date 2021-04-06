@@ -26,9 +26,9 @@ class CrashResponse(BaseModel):
 
 class SeverityResponse(BaseModel):
     fatal: int = Field(..., alias="Fatality")
-    major: int = Field(..., alias="Suspected Serious Injury")
-    moderate: int = Field(..., alias="Suspected Minor Injury")
-    minor: int = Field(..., alias="Possible Injury")
+    sus_serious_inj: int = Field(..., alias="Suspected Serious Injury")
+    sus_minor_inj: int = Field(..., alias="Suspected Minor Injury")
+    possible_inj: int = Field(..., alias="Possible Injury")
     unknown_severity: int = Field(..., alias="Unknown Severity")
     uninjured: int = Field(..., alias="Uninjured")
     unknown_if_injured: int = Field(..., alias="Unknown if Injured")
@@ -169,12 +169,12 @@ def get_summary(
     geojson: str = Query(None, description="Select crashes by geoson"),
     ksi_only: bool = Query(
         False,
-        description="Limit results to crashes with fatalities or major injuries only",
+        description="Limit results to crashes with fatalities or suspected serious injuries only",
     ),
 ):
     """
     Get a summary of crashes by year. Limit by geographic area and/or by crashes with fatalities or
-    major injuries only.
+    suspected serious injuries only.
     """
 
     # build query incrementally, to add possible WHERE clauses before GROUP BY and
@@ -183,9 +183,9 @@ def get_summary(
         SELECT
             year,
             SUM(fatalities),
-            SUM(maj_inj),
-            SUM(mod_inj),
-            SUM(min_inj),
+            SUM(sus_serious_inj),
+            SUM(sus_minor_inj),
+            SUM(possible_inj),
             SUM(unk_inj),
             SUM(uninjured),
             SUM(unknown),
@@ -267,7 +267,7 @@ def get_summary(
         values.append(geojson)
 
     if ksi_only:
-        sub_clauses.append("(fatalities > 0 OR maj_inj > 0)")
+        sub_clauses.append("(fatalities > 0 OR sus_serious_inj > 0)")
 
     # put the where clauses together
     if len(sub_clauses) == 0:

@@ -334,9 +334,9 @@ cur.execute(
     SELECT
         id,
         fatalities,
-        maj_inj,
-        mod_inj,
-        min_inj,
+        sus_serious_inj,
+        sus_minor_inj,
+        possible_inj,
         unk_inj
     FROM crash
 """
