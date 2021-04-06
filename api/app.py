@@ -288,8 +288,7 @@ def get_summary(
     result = cursor.fetchall()
     if not result:
         return JSONResponse(
-            status_code=404,
-            content={"message": "No information found for given parameters"},
+            status_code=404, content={"message": "No information found for given parameters"},
         )
 
     summary = {}
@@ -362,8 +361,7 @@ def get_crash_ids(geojson: str):
 
     if not result:
         return JSONResponse(
-            status_code=404,
-            content={"message": "No crash ids found for given parameters."},
+            status_code=404, content={"message": "No crash ids found for given parameters."},
         )
 
     ids = []

@@ -15,8 +15,7 @@ def test_unknown_geoid_return_404(client):
 
 
 @pytest.mark.parametrize(
-    "area,value",
-    [("state", "CA"), ("county", "Allegheny"), ("municipality", "Erie City")],
+    "area,value", [("state", "CA"), ("county", "Allegheny"), ("municipality", "Erie City")],
 )
 def test_unknown_values_return_404(client, area, value):
     response = client.get(endpoint + f"?{area}={value}")
