@@ -372,10 +372,9 @@ if name_check:
     )
     for row in name_check:
         print(row[0])
-    sys.exit()
+else:
+    con.commit()
+    print("Postgres insertion took", time.time() - start, "seconds to run.")
 
-con.commit()
 cur.close()
 con.close()
-
-print("Postgres insertion took", time.time() - start, "seconds to run.")
