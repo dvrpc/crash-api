@@ -1,47 +1,50 @@
+"""
+Import data from csv files pulled from the MS Access DBs (and one from our DVRPC GIS db, crashgeom.csv) into Postgresql for the Crash API.
+
+Note that the code skips the first row of CSV files, as it expects that row to be header.
+
+Required files:
+  - PA_2014-19_MCDlist.csv
+  - PA_2014-19_CRASH.csv
+  - NJ_2010-16_1_Accidents.csv
+  - NJ_2017-19_1_Accidents.csv
+  - NJ_2010-16_4_Pedestrians.csv
+  - NJ_2017-19_4_Pedestrians.csv
+  - crashgeom.csv
+"""
+
 import csv
-import re
-import sys
 import time
 
 import psycopg2
 
 from config import PSQL_CREDS
 
-"""
-Import data from csv files pulled from the MS Access DB into Postgresql for the Crash Data API.
 
-Note that the code skips the first row of CSV files, as it expects that row to be header.
-"""
+duplicates = []  # duplicate CRN (PA) / CaseNumber (NJ)
 
-
-
-
-
-
-lookup_pa = {
-    "county": {
-        "09": "Bucks",
-        "67": "Philadelphia",
-        "15": "Chester",
-        "23": "Delaware",
-        "46": "Montgomery",
-    },
-    "muni": {},
-    "collision": {
-        "0": "Non-collision",
-        "1": "Rear-end",
-        "2": "Head-on",
-        "3": "Rear-to-rear (backing)",
-        "4": "Angle",
-        "5": "Sideswipe (same direction)",
-        "6": "Sideswipe (opposite direction)",
-        "7": "Hit fixed object",
-        "8": "Hit pedestrian",
-        "9": "Other or unknown",
-    },
+pa_counties = {
+    "09": "Bucks",
+    "67": "Philadelphia",
+    "15": "Chester",
+    "23": "Delaware",
+    "46": "Montgomery",
 }
 
-lookup_nj_collision = {
+pa_collisions = {
+    "0": "Non-collision",
+    "1": "Rear-end",
+    "2": "Head-on",
+    "3": "Rear-to-rear (backing)",
+    "4": "Angle",
+    "5": "Sideswipe (same direction)",
+    "6": "Sideswipe (opposite direction)",
+    "7": "Hit fixed object",
+    "8": "Hit pedestrian",
+    "9": "Other or unknown",
+}
+
+nj_collisions = {
     "10": "Non-collision",
     "01": "Rear-end",
     "07": "Head-on",
