@@ -69,19 +69,21 @@ nj_collisions = {
 con = psycopg2.connect(PSQL_CREDS)
 cur = con.cursor()
 
-# delete all existing records from postgres (previous data import)
+# delete all existing records from db (previous data import)
 cur.execute("DELETE FROM crash")
+con.commit()
 
 start = time.time()
 
-# enter MCD values into lookup_pa (unnecessary for NJ)
-with open("PA_MCDlist.txt", newline="") as csvfile:
+# enter MCD values into pa_municipalities (unnecessary for NJ)
+with open("PA_2014-19_MCDlist.csv", newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
+    pa_municipalities = {}
     for row in reader:
-        lookup_pa["muni"][row["MCDcode"]] = row["MCDname"]
+        pa_municipalities[row["MCDcode"]] = row["MCDname"]
 
 # insert PA crash data into db
-with open("PA_CRASH.txt", newline="") as csvfile:
+with open("PA_2014-19_CRASH.csv", newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
     for row in reader:
 
@@ -262,10 +264,10 @@ def insert_nj_pedestrians(filename: str):
             )
 
 
-insert_nj_accidents("NJ_2010_16_1_Accidents.csv")
-insert_nj_accidents("NJ_2017_18_1_Accidents.csv")
-insert_nj_pedestrians("NJ_2010_16_4_Pedestrians.txt")
-insert_nj_pedestrians("NJ_2017_18_4_Pedestrians.txt")
+insert_nj_accidents("NJ_2010-16_1_Accidents.csv")
+insert_nj_accidents("NJ_2017-19_1_Accidents.csv")
+insert_nj_pedestrians("NJ_2010-16_4_Pedestrians.csv")
+insert_nj_pedestrians("NJ_2017-19_4_Pedestrians.csv")
 
 # fix some municipality names
 muni_names = [
