@@ -304,7 +304,10 @@ con.commit()
 with open("crashgeom.csv", newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
     for row in reader:
-        cur.execute("UPDATE crash SET geom = %s where id = %s", [row["geom"], row["id"]])
+        cur.execute(
+            "UPDATE crash SET geom = ST_GeomFromText(%s, 4326) where id = %s",
+            [row["geom"], row["id"]],
+        )
 
 con.commit()
 
