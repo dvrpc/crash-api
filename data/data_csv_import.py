@@ -14,18 +14,8 @@ Note that the code skips the first row of CSV files, as it expects that row to b
 """
 
 
-def parse_dms(dms):
-    """Parse lat/lon in formt DD MM:SS.SSS to individual components"""
-    parts = re.split("[^\d\w.]+", dms)
-    return parts[0], parts[1], parts[2]
 
 
-def dms2dd(degrees, minutes, seconds, direction):
-    """Convert lat/lon from degrees, minutes, seconds to decimal degrees"""
-    dd = float(degrees) + float(minutes) / 60 + float(seconds) / (60 * 60)
-    if direction == "S" or direction == "W":
-        dd *= -1
-    return dd
 
 
 lookup_pa = {
@@ -92,70 +82,59 @@ with open("PA_CRASH.txt", newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
     for row in reader:
 
-        # deal with possible null values for lat and log and convert from DMS to DD
-        # doing this because Access only exports floats to 2 decimal points, which is insufficient
-        # so use the DMS fields in the database instead of the DD fields
-        if not row["LATITUDE"].strip():
-            lat = None
-        else:
-            d, m, s = parse_dms(row["LATITUDE"])
-            lat = dms2dd(d, m, s, "N")
-
-        if not row["LONGITUDE"].strip():
-            lon = None
-        else:
-            d, m, s = parse_dms(row["LONGITUDE"])
-            lon = dms2dd(d, m, s, "W")
-
-        cur.execute(
-            """
-            INSERT INTO crash (
-                id, state, county, municipality,
-                latitude, longitude, year, month, collision_type,
-                vehicles, persons, bicyclists, pedestrians,
-                fatalities, injuries,
-                uninjured,
-                unknown,
-                maj_inj, mod_inj, min_inj, unk_inj,
-                bike_fatalities, ped_fatalities
+        try:
+            cur.execute(
+                """
+                INSERT INTO crash (
+                    id, state, county, municipality,
+                    year, month, collision_type,
+                    vehicles, persons, bicyclists, pedestrians,
+                    fatalities, injuries,
+                    uninjured,
+                    unknown,
+                    sus_serious_inj, sus_minor_inj, possible_inj, unk_inj,
+                    bike_fatalities, ped_fatalities
+                )
+                VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s
+                )
+                """,
+                [
+                    "PA" + row["CRN"],
+                    "pa",
+                    pa_counties[row["COUNTY"]],
+                    pa_municipalities[row["MUNICIPALITY"]],
+                    row["CRASH_YEAR"],
+                    row["CRASH_MONTH"],
+                    pa_collisions[row["COLLISION_TYPE"]],
+                    int(row["VEHICLE_COUNT"]),
+                    int(row["PERSON_COUNT"]),
+                    int(row["BICYCLE_COUNT"]),
+                    int(row["PED_COUNT"]),
+                    int(row["FATAL_COUNT"]),
+                    int(row["TOT_INJ_COUNT"]),
+                    int(row["PERSON_COUNT"])
+                    - int(row["FATAL_COUNT"])
+                    - int(row["TOT_INJ_COUNT"])
+                    - int(row["UNK_INJ_PER_COUNT"]),
+                    int(row["UNK_INJ_PER_COUNT"]),
+                    int(row["MAJ_INJ_COUNT"]),
+                    int(row["MOD_INJ_COUNT"]),
+                    int(row["MIN_INJ_COUNT"]),
+                    int(row["UNK_INJ_DEG_COUNT"]),
+                    int(row["BICYCLE_DEATH_COUNT"]),
+                    int(row["PED_DEATH_COUNT"]),
+                ],
             )
-            VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s
-            )
-            """,
-            [
-                "PA" + row["CRN"],
-                "pa",
-                lookup_pa["county"][row["COUNTY"]],
-                lookup_pa["muni"][row["MUNICIPALITY"]],
-                lat,
-                lon,
-                row["CRASH_YEAR"],
-                row["CRASH_MONTH"],
-                lookup_pa["collision"][row["COLLISION_TYPE"]],
-                int(row["VEHICLE_COUNT"]),
-                int(row["PERSON_COUNT"]),
-                int(row["BICYCLE_COUNT"]),
-                int(row["PED_COUNT"]),
-                int(row["FATAL_COUNT"]),
-                int(row["TOT_INJ_COUNT"]),
-                int(row["PERSON_COUNT"])
-                - int(row["FATAL_COUNT"])
-                - int(row["TOT_INJ_COUNT"])
-                - int(row["UNK_INJ_PER_COUNT"]),
-                int(row["UNK_INJ_PER_COUNT"]),
-                int(row["MAJ_INJ_COUNT"]),
-                int(row["MOD_INJ_COUNT"]),
-                int(row["MIN_INJ_COUNT"]),
-                int(row["UNK_INJ_DEG_COUNT"]),
-                int(row["BICYCLE_DEATH_COUNT"]),
-                int(row["PED_DEATH_COUNT"]),
-            ],
-        )
+        except psycopg2.errors.UniqueViolation:
+            duplicates.append(["PA", row["CRN"]])
+            con.rollback()
+        else:
+            con.commit()
 
 
-def insert_nj_accidents(filename):
+def insert_nj_accidents(filename: str):
     """Insert data from the NJ 1_accidents tables into db."""
     with open(filename, newline="") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
@@ -175,15 +154,10 @@ def insert_nj_accidents(filename):
                 municipality = row["MunicipalityName"]
 
             # deal with possible null values for various fields
-            # also put negative on long
-            lat = None if not row["Latitude"].strip() else float(row["Latitude"])
-            lon = None if not row["Longitude"].strip() else -(abs(float(row["Longitude"])))
-            sri = None if not row["SRI"] else row["SRI"]
-            milepost = None if not row["MilePost"] else float(row["MilePost"])
             if not row["CrashTypeCode"]:
                 collision_type = "Other or unknown"
             else:
-                collision_type = lookup_nj_collision[row["CrashTypeCode"]]
+                collision_type = nj_collisions[row["CrashTypeCode"]]
             unknown = 0 if not row["Unknow_Injury"] else int(row["Unknow_Injury"])
 
             # there are some missing values for TotalPerson
@@ -196,58 +170,59 @@ def insert_nj_accidents(filename):
                     person_count - int(row["TotalKilled"]) - int(row["TotalInjured"]) - unknown
                 )
 
-            maj_inj = 0 if not row["Major_Injury"] else int(row["Major_Injury"])
-            mod_inj = 0 if not row["Moderate_Injury"] else int(row["Moderate_Injury"])
-            min_inj = 0 if not row["Minor_Injury"] else int(row["Minor_Injury"])
+            sus_serious_inj = 0 if not row["Major_Injury"] else int(row["Major_Injury"])
+            sus_minor_inj = 0 if not row["Moderate_Injury"] else int(row["Moderate_Injury"])
+            possible_inj = 0 if not row["Minor_Injury"] else int(row["Minor_Injury"])
 
-            cur.execute(
-                """
-                INSERT INTO crash (
-                    id, state, county, municipality,
-                    latitude, longitude, sri, milepost,
-                    year, month,
-                    collision_type,
-                    vehicles, persons,
-                    fatalities, injuries, uninjured, unknown,
-                    maj_inj, mod_inj, min_inj, unk_inj,
-                    bicyclists, bike_fatalities, pedestrians, ped_fatalities
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO crash (
+                        id, state, county, municipality,
+                        year, month,
+                        collision_type,
+                        vehicles, persons,
+                        fatalities, injuries, uninjured, unknown,
+                        sus_serious_inj, sus_minor_inj, possible_inj, unk_inj,
+                        bicyclists, bike_fatalities, pedestrians, ped_fatalities
+                    )
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s
+                    )
+                    """,
+                    [
+                        "NJ" + row["CaseNumber"],
+                        "nj",
+                        row["CountyName"].title(),
+                        municipality.title(),
+                        row["CrashDate"].split("/")[2],
+                        row["CrashDate"].split("/")[0],
+                        collision_type,
+                        int(row["TotalVehiclesInvolved"]),
+                        person_count,
+                        int(row["TotalKilled"]),
+                        int(row["TotalInjured"]),
+                        uninjured,
+                        unknown,
+                        sus_serious_inj,
+                        sus_minor_inj,
+                        possible_inj,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ],
                 )
-                VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s
-                )
-                """,
-                [
-                    "NJ" + row["CaseNumber"],
-                    "nj",
-                    row["CountyName"].title(),
-                    municipality.title(),
-                    lat,
-                    lon,
-                    sri,
-                    milepost,
-                    row["CrashDate"].split("/")[2],
-                    row["CrashDate"].split("/")[0],
-                    collision_type,
-                    int(row["TotalVehiclesInvolved"]),
-                    person_count,
-                    int(row["TotalKilled"]),
-                    int(row["TotalInjured"]),
-                    uninjured,
-                    unknown,
-                    maj_inj,
-                    mod_inj,
-                    min_inj,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                ],
-            )
+            except psycopg2.errors.UniqueViolation:
+                duplicates.append(["NJ", row["CaseNumber"]])
+                con.rollback()
+            else:
+                con.commit()
 
 
-def insert_nj_pedestrians(filename):
+def insert_nj_pedestrians(filename: str):
     """Insert data from the NJ 4_pedestrians tables into db."""
     with open(filename, newline="") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
@@ -318,10 +293,15 @@ for county in muni_names:
                 "UPDATE crash SET municipality = %s WHERE county = %s AND municipality = %s",
                 [each[1], k, each[0]],
             )
-
+con.commit()
 
 # add the geom field
-cur.execute("UPDATE crash SET geom = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326);")
+with open("crashgeom.csv", newline="") as csvfile:
+    reader = csv.DictReader(csvfile, delimiter=",")
+    for row in reader:
+        cur.execute("UPDATE crash SET geom = %s where id = %s", [row["geom"], row["id"]])
+
+con.commit()
 
 # max_severity and geoid are added to this table (rather than calculating and returning within the
 # API/joining with the geoid table) so we can easily export their values in a geojson via script
