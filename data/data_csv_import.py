@@ -356,6 +356,11 @@ cur.execute(
     """
 )
 
+with open("duplicates.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    for duplicate in duplicates:
+        writer.writerow(duplicate)
+
 # check if there are any records in the crash table with NULL geoid - if so, that means there's
 # a discrepancy in names between crash data and the official places names
 cur.execute("SELECT distinct(municipality) FROM crash WHERE geoid is NULL")
