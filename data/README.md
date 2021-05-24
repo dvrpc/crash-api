@@ -8,7 +8,7 @@ Add these files to the `data` directory of this repo (use `scp` to upload them t
 
 Note:
   * this is a full import of all years' data. The script begins by deleting all records from the existing database.
-  * this requires Postgres with the [PostGIS](https://postgis.net/) extension installed. See Postgres/PostGIS docs on installation. For Debian, install PostGIS on an already-installed Postgres 12 cluster with `sudo apt install postgres-12-postgis-3`.
+  * this requires Postgres with the [PostGIS](https://postgis.net/) extension installed. See Postgres/PostGIS docs on installation. For Debian, install PostGIS on an already-installed Postgres 12 cluster with `sudo apt install postgresql-12-postgis-3`.
   * like the API, this requires (for step 6) a connection string in the variable `PSQL_CREDS` in a config.py file. The connection string should include host, port, user, password, and dbname. In this case, the file should be located in the data/ directory rather than the api/ directory.
 
 1. Create the database in postgres:
