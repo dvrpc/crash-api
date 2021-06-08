@@ -2,23 +2,30 @@
 Import data from csv files pulled from the MS Access DBs (and one from our DVRPC GIS db, crashgeom.csv) into Postgresql for the Crash API.
 
 Note that the code skips the first row of CSV files, as it expects that row to be header.
-
-Required files:
-  - PA_2014-19_MCDlist.csv
-  - PA_2014-19_CRASH.csv
-  - NJ_2010-16_1_Accidents.csv
-  - NJ_2017-19_1_Accidents.csv
-  - NJ_2010-16_4_Pedestrians.csv
-  - NJ_2017-19_4_Pedestrians.csv
-  - crashgeom.csv
 """
 
 import csv
+from pathlib import Path
 import time
 
 import psycopg2
 
 from config import PSQL_CREDS
+
+
+required_data_files = [
+    "PA_2014-19_MCDlist.csv",
+    "PA_2014-19_CRASH.csv",
+    "NJ_2010-16_1_Accidents.csv",
+    "NJ_2017-19_1_Accidents.csv",
+    "NJ_2010-16_4_Pedestrians.csv",
+    "NJ_2017-19_4_Pedestrians.csv",
+    "crashgeom.csv",
+]
+
+for file in required_data_files:
+    if not Path(file).exists():
+        raise Exception(f"Required data file {file} missing")
 
 
 duplicates = []  # duplicate CRN (PA) / CaseNumber (NJ)
