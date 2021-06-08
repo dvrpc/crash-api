@@ -54,6 +54,4 @@ CREATE TABLE IF NOT EXISTS geoid (
     geoid bigint primary key NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS geom_index ON crash USING GIST (geom);
-
 COMMIT;
