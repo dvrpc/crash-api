@@ -47,6 +47,13 @@ CREATE TABLE IF NOT EXISTS crash (
     ped_fatalities integer NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS geoid (
+    state char(2) NOT NULL,
+    county varchar(15),
+    municipality varchar(100),
+    geoid bigint primary key NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS geom_index ON crash USING GIST (geom);
 
 COMMIT;

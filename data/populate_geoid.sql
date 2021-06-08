@@ -2,14 +2,6 @@
 
 BEGIN;
 
-
-CREATE TABLE geoid (
-    state char(2) NOT NULL,
-    county varchar(15),
-    municipality varchar(100),
-    geoid bigint primary key NOT NULL
-);
-
 INSERT INTO geoid (state, county, municipality, geoid) VALUES
     ('pa', NULL, NULL, 42),
     ('nj', NULL, NULL, 34),
