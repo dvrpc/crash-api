@@ -20,7 +20,7 @@ Within injuries, there are also four categories:
     - unknown severity (unk_inj) - note that NJ does not have this category
 */
 
-CREATE TABLE crash (
+CREATE TABLE IF NOT EXISTS crash (
     id text PRIMARY KEY NOT NULL,
     geoid bigint,
     state text NOT NULL,
@@ -47,6 +47,6 @@ CREATE TABLE crash (
     ped_fatalities integer NOT NULL
 );
 
-CREATE INDEX geom_index ON crash USING GIST (geom);
+CREATE INDEX IF NOT EXISTS geom_index ON crash USING GIST (geom);
 
 COMMIT;
