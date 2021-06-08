@@ -4,6 +4,6 @@ depending on setup)
 
 BEGIN;
 
-DROP INDEX geom_index;
+DROP INDEX IF EXISTS geom_index;
 
 COMMIT;
