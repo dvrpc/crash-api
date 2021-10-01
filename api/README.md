@@ -1,6 +1,6 @@
 # API
 
-See https://alpha.dvrpc.org/api/crash-data/v1/docs for full API documentation.
+See https://cloud.dvrpc.org/api/crash-data/v1/docs for full API documentation.
 
 Note: the API requires a connection string in the variable PSQL_CREDS in a config.py file in this directory. The connection string should include host, port, user, password, and dbname.
 
