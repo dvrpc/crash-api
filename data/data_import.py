@@ -12,16 +12,26 @@ import psycopg2
 
 from config import PSQL_CREDS
 
+# required files
+crashgeom_file = "crashgeom.csv"
+pa_mcdlist_file = "PA_2014-20_MCDlist.csv"
+pa_crash_file = "PA_2014-20_CRASH.csv"
+nj_accidents_files = [
+    "NJ_2010-16_1_Accidents.csv",
+    "NJ_2017-20_1_Accidents.csv",
+]
+nj_pedestrians_files = [
+    "NJ_2010-16_4_Pedestrians.csv",
+    "NJ_2017-20_4_Pedestrians.csv",
+]
 
 required_data_files = [
-    "PA_2014-19_MCDlist.csv",
-    "PA_2014-19_CRASH.csv",
-    "NJ_2010-16_1_Accidents.csv",
-    "NJ_2017-19_1_Accidents.csv",
-    "NJ_2010-16_4_Pedestrians.csv",
-    "NJ_2017-19_4_Pedestrians.csv",
-    "crashgeom.csv",
+    crashgeom_file,
+    pa_mcdlist_file,
+    pa_crash_file,
 ]
+required_data_files.extend(nj_accidents_files)
+required_data_files.extend(nj_pedestrians_files)
 
 for file in required_data_files:
     if not Path(file).exists():
@@ -83,14 +93,14 @@ con.commit()
 start = time.time()
 
 # enter MCD values into pa_municipalities (unnecessary for NJ)
-with open("PA_2014-19_MCDlist.csv", newline="") as csvfile:
+with open(pa_mcdlist_file, newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
     pa_municipalities = {}
     for row in reader:
         pa_municipalities[row["MCDcode"]] = row["MCDname"]
 
 # insert PA crash data into db
-with open("PA_2014-19_CRASH.csv", newline="") as csvfile:
+with open(pa_crash_file, newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
     for row in reader:
 
@@ -271,10 +281,15 @@ def insert_nj_pedestrians(filename: str):
             )
 
 
-insert_nj_accidents("NJ_2010-16_1_Accidents.csv")
-insert_nj_accidents("NJ_2017-19_1_Accidents.csv")
-insert_nj_pedestrians("NJ_2010-16_4_Pedestrians.csv")
-insert_nj_pedestrians("NJ_2017-19_4_Pedestrians.csv")
+for file in nj_accidents_files:
+    insert_nj_accidents(file)
+
+for file in nj_pedestrians_files:
+    insert_nj_pedestrians(file)
+# insert_nj_accidents("NJ_2010-16_1_Accidents.csv")
+# insert_nj_accidents("NJ_2017-20_1_Accidents.csv")
+# insert_nj_pedestrians("NJ_2010-16_4_Pedestrians.csv")
+# insert_nj_pedestrians("NJ_2017-20_4_Pedestrians.csv")
 
 # fix some municipality names
 muni_names = [
@@ -308,7 +323,7 @@ for county in muni_names:
 con.commit()
 
 # add the geom field
-with open("crashgeom.csv", newline="") as csvfile:
+with open(crashgeom_file, newline="") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=",")
     for row in reader:
         cur.execute(
