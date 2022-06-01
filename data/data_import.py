@@ -160,16 +160,7 @@ def insert_nj_accidents(filename: str):
     with open(filename, newline="") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
         for row in reader:
-            # skip any crashes from before the year 2014
-            # if "2010" in filename:
-            #     if int(row["CrashDate"].split("/")[2]) < 2014:
-            #         continue
-
-            # this may be an artifact of how the tables were exported between different databases,
-            # but the 2010-16 CrashDate is month/day/year, whereas 2017-20 also includes time
-            # (00:00:00). In either case, we only want date, not time, and splitting on " " and
-            # then using first of it will get us that, even if no space in the field, because
-            # split will just return the whole thing if the separate doesn't exist
+            # get month and year from CrashDate field
             date = row["CrashDate"].split(" ")[0].split("/")
             month = int(date[0])
             year = int(date[2])
@@ -300,10 +291,6 @@ for file in nj_accidents_files:
 
 for file in nj_pedestrians_files:
     insert_nj_pedestrians(file)
-# insert_nj_accidents("NJ_2010-16_1_Accidents.csv")
-# insert_nj_accidents("NJ_2017-20_1_Accidents.csv")
-# insert_nj_pedestrians("NJ_2010-16_4_Pedestrians.csv")
-# insert_nj_pedestrians("NJ_2017-20_4_Pedestrians.csv")
 
 # fix some municipality names
 muni_names = [
