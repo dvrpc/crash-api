@@ -4,15 +4,15 @@ Caution - script may need to be modified to accomidate changes in the GIS db (us
 */
 
 with NJ as
-(select casenumber as nj_id, shape
+(select casenumber as nj_id, st_force2d(shape) as shape
 from transportation.crash_newjersey
 where st_isempty(shape)='false'),
 PA as 
-(select cast(crn as varchar(10)) as pa_id, shape
+(select cast(crn as varchar(10)) as pa_id, st_force2d(shape) as shape
 from transportation.crash_pennsylvania
 where st_isempty(shape)='false'),
 NJold as 
-(select casenumber as njold_id, st_transform(shape, 4326) as shape
+(select casenumber as njold_id, st_transform(st_force2d(shape), 4326) as shape
 from transportation.crash_newjersey_old
 where (crashdate like '%/2014' or crashdate like '%/2015' or crashdate like '%/2016') and st_isempty(shape)='false')
 select  *
