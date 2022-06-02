@@ -17,14 +17,14 @@ Local instructions:
       2. create the database: `createdb crash`
   2. cd into the `data` directory of this repo
   3. Create/populate tables (using port/host/user settings as necessary):
-    * `psql crash < create_tables.sql`
-    * `psql crash < populate_geoid.sql`
-    * `psql crash < create_geom_index.sql`
+      1. `psql crash < create_tables.sql`
+      2. `psql crash < populate_geoid.sql`
+      3. `psql crash < create_geom_index.sql`
   4. `exit` to return to your regular user account
   5. Create/activate virtual environment and install requirements as needed:
-    * `python3 -m venv ve`
-    * `. ../api/ve/bin/activate` (or wherever it's located)
-    * `pip install -r requirements.txt`
+      1. `python3 -m venv ve`
+      2. `. ../api/ve/bin/activate` (or wherever it's located)
+      3. `pip install -r requirements.txt`
   6. Import the data into the table: `python data_import.py`. It takes ~10 minutes to run.
   7. Run tests to verify previous years' data
   8. Create new tests to verify new data. (Previous tests are fairly extensive and ensure that the data was transformed properly. New tests can just ensure some broad counts are correct.)
