@@ -364,6 +364,7 @@ def test_data_PA(client):
     y_17 = data["2017"]
     y_18 = data["2018"]
     y_19 = data["2019"]
+    y_20 = data["2020"]
 
     total_injured_18 = (
         y_18["severity"]["Suspected Serious Injury"]
@@ -446,6 +447,8 @@ def test_data_PA(client):
     assert y_18["mode"]["Vehicle occupants"] == 88096 - 489 - 2272
     assert total_injured_18 == 26125  # db has 26129, but sum of components is 29125
     assert y_19["Total crashes"] == 35992
+    assert y_20["Total crashes"] == 29708
+    assert y_20["severity"]["Fatality"] == 315
 
 
 def test_data_NJ(client):
@@ -457,6 +460,7 @@ def test_data_NJ(client):
     y_17 = data["2017"]
     y_18 = data["2018"]
     y_19 = data["2019"]
+    y_20 = data["2020"]
 
     assert y_14["Total crashes"] == 47664
     assert y_15["Total crashes"] == 44916
@@ -464,6 +468,8 @@ def test_data_NJ(client):
     assert y_17["Total crashes"] == 44861
     assert y_18["Total crashes"] == 46183
     assert y_19["Total crashes"] == 45864
+    assert y_20["Total crashes"] == 34166
+    assert y_20["severity"]["Fatality"] == 139
 
 
 @pytest.mark.parametrize(
