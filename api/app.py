@@ -333,7 +333,16 @@ def get_summary(
         summary[k]["type"] = collisions_by_year[k]
 
     # set total crashes = 0 if year not present, to make charting easier/provide additional info
-    years = ["2014", "2015", "2016", "2017", "2018"]
+    try:
+        cursor.execute("SELECT DISTINCT(year) FROM crash")
+    except psycopg2.Error as e:
+        return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
+
+    result = cursor.fetchall()
+
+    years = []
+    for row in result:
+        years.append(str(row[0]))
 
     for each in years:
         if not summary.get(each):
