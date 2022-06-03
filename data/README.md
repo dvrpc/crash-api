@@ -33,4 +33,4 @@ Then copy this database to the production server:
   1. Create a backup of the local database, as postgres user: `pg_dump -O -F c crash > crash-[yyyy-mm-dd].pgc`
   2. Add it to the roles/crash/files/ directory of [the cloud ansible repo](https://github.com/dvrpc/cloud-ansible), update name of `db_backup` var in roles/crash/vars/main.yaml, and run the playbook.
 
-Finally, create a CSV file for GIS to generate vector tiles for the front-end viewer: `psql -U postgres -d crash -c "COPY ( SELECT id, max_severity, year, geoid, geom FROM CRASH ) TO STDOUT WITH CSV HEADER" > crashes_for_vector_tiles.csv` and share it.
+Finally, create a CSV file for GIS to generate vector tiles for the front-end viewer: `psql -U postgres -d crash -c "COPY ( select id, st_x(geom) as x, st_y(geom) as y, max_severity as max_sever, left(CAST(geoid as text),5) as c, geoid as m from crash ) TO STDOUT WITH CSV HEADER" > crashes_for_vector_tiles.csv` and share it.
