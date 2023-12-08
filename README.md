@@ -8,4 +8,4 @@ See the [API](api/README.md) and [Data](data/README.md) READMEs for additional i
 
 Note: the API will be automatically redeployed upon a successful pull request merge.
 
-Testing.
+Testing a closed/not merged pull request.
