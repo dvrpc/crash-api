@@ -7,36 +7,56 @@ Note that the code skips the first row of CSV files, as it expects that row to b
 import csv
 from pathlib import Path
 import time
+import sys
 
 import psycopg2
 
-from config import PSQL_CREDS
+from config import PG_CREDS
+
+# Variables affecting what work gets done
+UPDATE_PA_MCDLIST = False
+DELETE_AND_INSERT_ALL_DATA = False
+
 
 # required files
-crashgeom_file = "crashgeom.csv"
-pa_mcdlist_file = "PA_2014-20_MCDlist.csv"
-pa_crash_file = "PA_2014-20_CRASH.csv"
-nj_accidents_files = [
-    "NJ_2010-16_1_Accidents.csv",
-    "NJ_2017-20_1_Accidents.csv",
-]
-nj_pedestrians_files = [
-    "NJ_2010-16_4_Pedestrians.csv",
-    "NJ_2017-20_4_Pedestrians.csv",
-]
+crash_geom_files = []  # these contain both states
+pa_crash_files = []
+nj_accidents_files = []
+nj_pedestrians_files = []
+pa_mcdlist_file = "PA_2014-21_MCDlist.csv"
 
-required_data_files = [
-    crashgeom_file,
-    pa_mcdlist_file,
-    pa_crash_file,
-]
-required_data_files.extend(nj_accidents_files)
-required_data_files.extend(nj_pedestrians_files)
+if DELETE_AND_INSERT_ALL_DATA:
+    crash_geom_files.append("crash_geom_2014-20.csv")
+    crash_geom_files.append("crash_geom_2021.csv")
+
+    pa_crash_files.append("PA_2014-20_CRASH.csv")
+    pa_crash_files.append("PA_2021_CRASH.csv")
+
+    nj_accidents_files.append("NJ_2010-16_1_Accidents.csv")
+    nj_accidents_files.append("NJ_2017-20_1_Accidents.csv")
+    nj_accidents_files.append("NJ_2021_1_Accidents.csv")
+
+    nj_pedestrians_files.append("NJ_2010-16_4_Pedestrians.csv")
+    nj_pedestrians_files.append("NJ_2017-20_4_Pedestrians.csv")
+    nj_pedestrians_files.append("NJ_2021_4_Pedestrians.csv")
+else:
+    crash_geom_files.append("crash_geom_2021.csv")
+    pa_crash_files.append("PA_2021_CRASH.csv")
+    nj_accidents_files.append("NJ_2021_1_Accidents.csv")
+    nj_pedestrians_files.append("NJ_2021_4_Pedestrians.csv")
+
+
+required_data_files = (
+    crash_geom_files
+    + pa_crash_files
+    + nj_accidents_files
+    + nj_pedestrians_files
+    + [pa_mcdlist_file]
+)
 
 for file in required_data_files:
     if not Path(file).exists():
         raise Exception(f"Required data file {file} missing")
-
 
 duplicates = []  # duplicate CRN (PA) / CaseNumber (NJ)
 
@@ -83,12 +103,13 @@ nj_collisions = {
 }
 
 # connect to postgres database
-con = psycopg2.connect(PSQL_CREDS)
+con = psycopg2.connect(PG_CREDS)
 cur = con.cursor()
 
 # delete all existing records from db (previous data import)
-cur.execute("DELETE FROM crash")
-con.commit()
+if DELETE_AND_INSERT_ALL_DATA:
+    cur.execute("DELETE FROM crash")
+    con.commit()
 
 start = time.time()
 
@@ -100,59 +121,60 @@ with open(pa_mcdlist_file, newline="") as csvfile:
         pa_municipalities[row["MCDcode"]] = row["MCDname"]
 
 # insert PA crash data into db
-with open(pa_crash_file, newline="") as csvfile:
-    reader = csv.DictReader(csvfile, delimiter=",")
-    for row in reader:
-        try:
-            cur.execute(
-                """
-                INSERT INTO crash (
-                    id, state, county, municipality,
-                    year, month, collision_type,
-                    vehicles, persons, bicyclists, pedestrians,
-                    fatalities, injuries,
-                    uninjured,
-                    unknown,
-                    sus_serious_inj, sus_minor_inj, possible_inj, unk_inj,
-                    bike_fatalities, ped_fatalities
+for each in pa_crash_files:
+    with open(each, newline="") as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=",")
+        for row in reader:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO crash (
+                        id, state, county, municipality,
+                        year, month, collision_type,
+                        vehicles, persons, bicyclists, pedestrians,
+                        fatalities, injuries,
+                        uninjured,
+                        unknown,
+                        sus_serious_inj, sus_minor_inj, possible_inj, unk_inj,
+                        bike_fatalities, ped_fatalities
+                    )
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s
+                    )
+                    """,
+                    [
+                        "PA" + row["CRN"],
+                        "pa",
+                        pa_counties[row["COUNTY"]],
+                        pa_municipalities[row["MUNICIPALITY"]],
+                        row["CRASH_YEAR"],
+                        row["CRASH_MONTH"],
+                        pa_collisions[row["COLLISION_TYPE"]],
+                        int(row["VEHICLE_COUNT"]),
+                        int(row["PERSON_COUNT"]),
+                        int(row["BICYCLE_COUNT"]),
+                        int(row["PED_COUNT"]),
+                        int(row["FATAL_COUNT"]),
+                        int(row["TOT_INJ_COUNT"]),
+                        int(row["PERSON_COUNT"])
+                        - int(row["FATAL_COUNT"])
+                        - int(row["TOT_INJ_COUNT"])
+                        - int(row["UNK_INJ_PER_COUNT"]),
+                        int(row["UNK_INJ_PER_COUNT"]),
+                        int(row["MAJ_INJ_COUNT"]),
+                        int(row["MOD_INJ_COUNT"]),
+                        int(row["MIN_INJ_COUNT"]),
+                        int(row["UNK_INJ_DEG_COUNT"]),
+                        int(row["BICYCLE_DEATH_COUNT"]),
+                        int(row["PED_DEATH_COUNT"]),
+                    ],
                 )
-                VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s
-                )
-                """,
-                [
-                    "PA" + row["CRN"],
-                    "pa",
-                    pa_counties[row["COUNTY"]],
-                    pa_municipalities[row["MUNICIPALITY"]],
-                    row["CRASH_YEAR"],
-                    row["CRASH_MONTH"],
-                    pa_collisions[row["COLLISION_TYPE"]],
-                    int(row["VEHICLE_COUNT"]),
-                    int(row["PERSON_COUNT"]),
-                    int(row["BICYCLE_COUNT"]),
-                    int(row["PED_COUNT"]),
-                    int(row["FATAL_COUNT"]),
-                    int(row["TOT_INJ_COUNT"]),
-                    int(row["PERSON_COUNT"])
-                    - int(row["FATAL_COUNT"])
-                    - int(row["TOT_INJ_COUNT"])
-                    - int(row["UNK_INJ_PER_COUNT"]),
-                    int(row["UNK_INJ_PER_COUNT"]),
-                    int(row["MAJ_INJ_COUNT"]),
-                    int(row["MOD_INJ_COUNT"]),
-                    int(row["MIN_INJ_COUNT"]),
-                    int(row["UNK_INJ_DEG_COUNT"]),
-                    int(row["BICYCLE_DEATH_COUNT"]),
-                    int(row["PED_DEATH_COUNT"]),
-                ],
-            )
-        except psycopg2.errors.UniqueViolation:
-            duplicates.append(["PA", row["CRN"]])
-            con.rollback()
-        else:
-            con.commit()
+            except psycopg2.errors.UniqueViolation:
+                duplicates.append(["PA", row["CRN"]])
+                con.rollback()
+            else:
+                con.commit()
 
 
 def insert_nj_accidents(filename: str):
@@ -324,13 +346,14 @@ for county in muni_names:
 con.commit()
 
 # add the geom field
-with open(crashgeom_file, newline="") as csvfile:
-    reader = csv.DictReader(csvfile, delimiter=",")
-    for row in reader:
-        cur.execute(
-            "UPDATE crash SET geom = ST_GeomFromText(%s, 4326) where id = %s",
-            [row["geom"], row["id"]],
-        )
+for each in crash_geom_files:
+    with open(each, newline="") as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=",")
+        for row in reader:
+            cur.execute(
+                "UPDATE crash SET geom = ST_GeomFromText(%s, 4326) where id = %s",
+                [row["geom"], row["id"]],
+            )
 
 con.commit()
 
