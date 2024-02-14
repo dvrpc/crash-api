@@ -6,3 +6,4 @@ api/.coverage
 data/config.py
 data/*.csv
 data/*.txt
+.env

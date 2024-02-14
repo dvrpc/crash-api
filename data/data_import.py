@@ -4,19 +4,27 @@ Import data from csv files pulled from the MS Access DBs (and one from our DVRPC
 Note that the code skips the first row of CSV files, as it expects that row to be header.
 """
 
+import argparse
 import csv
 from pathlib import Path
+import os
 import time
-import sys
 
+from dotenv import load_dotenv
 import psycopg2
 
-from config import PG_CREDS
+load_dotenv()
 
-# Variables affecting what work gets done
-UPDATE_PA_MCDLIST = False
-DELETE_AND_INSERT_ALL_DATA = False
+DB_USER = os.environ.get("DB_USER")
+DB_PASS = os.environ.get("DB_PASS")
+DB_PORT = os.environ.get("DB_PORT")
+DB_HOST = os.environ.get("DB_HOST")
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-y", "--year", type=int, help="Add or update data for a certain year.")
+parser.add_argument("--reset-db", action="store_true", default=False)
+parser.add_argument("--update-pa-mcds", action="store_true", default=False)
+args = parser.parse_args()
 
 # required files
 crash_geom_files = []  # these contain both states
@@ -25,7 +33,7 @@ nj_accidents_files = []
 nj_pedestrians_files = []
 pa_mcdlist_file = "PA_2014-21_MCDlist.csv"
 
-if DELETE_AND_INSERT_ALL_DATA:
+if args.reset_db:
     crash_geom_files.append("crash_geom_2014-20.csv")
     crash_geom_files.append("crash_geom_2021.csv")
 
@@ -39,11 +47,16 @@ if DELETE_AND_INSERT_ALL_DATA:
     nj_pedestrians_files.append("NJ_2010-16_4_Pedestrians.csv")
     nj_pedestrians_files.append("NJ_2017-20_4_Pedestrians.csv")
     nj_pedestrians_files.append("NJ_2021_4_Pedestrians.csv")
+# update just the latest year
 else:
-    crash_geom_files.append("crash_geom_2021.csv")
-    pa_crash_files.append("PA_2021_CRASH.csv")
-    nj_accidents_files.append("NJ_2021_1_Accidents.csv")
-    nj_pedestrians_files.append("NJ_2021_4_Pedestrians.csv")
+    if args.year is None:
+        raise Exception("Required argument --year missing.")
+        exit()
+
+    crash_geom_files.append(f"crash_geom_{args.year}.csv")
+    pa_crash_files.append(f"PA_{args.year}_CRASH.csv")
+    nj_accidents_files.append(f"NJ_{args.year}_1_Accidents.csv")
+    nj_pedestrians_files.append(f"NJ_{args.year}_4_Pedestrians.csv")
 
 
 required_data_files = (
@@ -103,12 +116,16 @@ nj_collisions = {
 }
 
 # connect to postgres database
-con = psycopg2.connect(PG_CREDS)
+con = psycopg2.connect(dbname="crash", user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT)
 cur = con.cursor()
 
 # delete all existing records from db (previous data import)
-if DELETE_AND_INSERT_ALL_DATA:
+if args.reset_db:
     cur.execute("DELETE FROM crash")
+    con.commit()
+# delete any records that may have been previously imported for this year
+else:
+    cur.execute(f"DELETE FROM crash WHERE year = {args.year}")
     con.commit()
 
 start = time.time()
@@ -405,7 +422,9 @@ cur.execute(
     """
 )
 
+# Write any duplicate ids to CSV file, after clearing any duplicates from existing imports.
 with open("duplicates.csv", "w", newline="") as f:
+    f.truncate()
     writer = csv.writer(f)
     for duplicate in duplicates:
         writer.writerow(duplicate)

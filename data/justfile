@@ -1,0 +1,49 @@
+set dotenv-load
+
+# Run Python tests
+@test:
+  echo "Running tests..."
+  cd ../api && ../api/ve/bin/python3 -m pytest -q
+
+# Add/update one year of data
+@update year: setup-venv && count-dups test dump-db create-csv-for-vec-tiles
+  echo "Running data import script..."
+  ../api/ve/bin/python3 data_import.py --year {{ year }}   
+
+# Drop and recreate database
+[confirm("Are you sure you want to reset the database? The existing one will be dropped and recreated.")]
+@reset: setup-venv && test count-dups dump-db create-csv-for-vec-tiles
+  -PGPASSWORD=$DB_PASS dropdb -U $DB_USER -p $DB_PORT -h $DB_HOST crash
+  PGPASSWORD=$DB_PASS createdb -U $DB_USER -p $DB_PORT -h $DB_HOST crash
+  PGPASSWORD=$DB_PASS psql -U $DB_USER -p $DB_PORT -h $DB_HOST -q crash < create_tables.sql
+  PGPASSWORD=$DB_PASS psql -U $DB_USER -p $DB_PORT -h $DB_HOST -q crash < populate_geoid.sql
+  PGPASSWORD=$DB_PASS psql -U $DB_USER -p $DB_PORT -h $DB_HOST -q crash < create_geom_index.sql
+  echo "Running data import script..."
+  ../api/ve/bin/python3 data_import.py --reset-db
+
+[private]
+@setup-venv:
+  cd ../api && python3 -m venv ve
+  ../api/ve/bin/pip3 install -r ../api/requirements.txt -q
+  echo "Virtual environment successfully created/activiated."
+
+[private]
+@create-csv-for-vec-tiles:
+  PGPASSWORD=$DB_PASS psql -d crash -U $DB_USER -p $DB_PORT -h $DB_HOST -c "COPY (select id, year, st_x(geom) as x, st_y(geom) as y, max_severity as max_sever, left(CAST(geoid as text),5) as c, geoid as m from crash ) TO STDOUT WITH CSV HEADER" > crashes_for_vector_tiles.csv
+  echo "CSV for vector tiles created."
+
+[private]
+dump-db:
+  #!/usr/bin/env bash
+  backup_name=crash-$(date +"%Y-%m-%d").sql
+  PGPASSWORD=$DB_PASS pg_dump -U $DB_USER -p $DB_PORT -h $DB_HOST -O crash > $backup_name
+  echo "Databased dumped: $backup_name"
+
+[private]
+count-dups:
+  #!/usr/bin/env bash
+  file=duplicates.csv
+  num_duplicates=$(wc -l ${file} | awk '{print $1}')
+  echo "${num_duplicates} duplicate(s) found in ${file}."
+
+
