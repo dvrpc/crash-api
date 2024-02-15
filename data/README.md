@@ -34,11 +34,11 @@ Create/update the database on your local machine, from the `data` directory of t
       * `--year [YYYY]` to add/update date for a single year. The program will first delete all existing records for this year, so that updates can be made if corrections are necessary. e.g. `python data-import.py --year 2021`. It takes about 90 seconds to add one year of data.
       * `--reset-db` to wipe the database and import data for all years.
       * If duplicates.csv was generated, check it to confirm expectations.
-      * Run tests to verify previous years' data. (From the api directory, and in an activated virtual environment, run `python -m pytest`.)
+      * Run tests to verify previous years' data. 
   4. Create new tests to verify new data. (Previous tests are fairly extensive and ensure that the data was transformed properly. New tests can just ensure some broad counts are correct.)
   5. Create a backup of the database you just created, as postgres user: `pg_dump -O crash > crash-[yyyy-mm-dd].sql`
 
-Add the backup to the roles/crash/files/ directory of [the cloud ansible repo](https://github.com/dvrpc/cloud-ansible), update name of `db_backup` var in roles/crash/vars/main.yaml, and run the playbook.
+Add the backup to the roles/crash/files/ directory of [the cloud ansible repo](https://github.com/dvrpc/cloud-ansible), update name of `db_backup` var in roles/crash/vars/main.yaml, and run the playbook, using `--tags crash`.
 
 Finally, create a CSV file for GIS to generate vector tiles for the front-end viewer: `psql -U postgres -d crash -c "COPY ( select id, year, st_x(geom) as x, st_y(geom) as y, max_severity as max_sever, left(CAST(geoid as text),5) as c, geoid as m from crash ) TO STDOUT WITH CSV HEADER" > crashes_for_vector_tiles.csv` and share it.
 
