@@ -2,6 +2,8 @@ import pytest
 
 endpoint = "/api/crash-data/v1/crashes/"  # <id>
 
+from app import get_db_cursor
+
 
 def test_404_when_bad_id_param_provided(client):
     response = client.get(endpoint + "1")
@@ -52,9 +54,19 @@ def test_data_correct2(client):
         ("PA2016004173", "Suspected Serious Injury"),
         ("PA2016004153", "Fatality"),
         ("PA2016004167", "Unknown Injury"),
+        ("PA2021000028", "No Fatality or Injury"),
     ],
 )
 def test_max_severity(client, id, expected_max_severity):
     response = client.get(endpoint + id)
     data = response.json()
     assert data["Maximum severity"] == expected_max_severity
+
+
+# there should be no records that have a null max severity
+def test_max_severity_no_nulls():
+    cursor = get_db_cursor()
+    query = "select count(*) from crash where max_severity is null"
+    cursor.execute(query)
+    result = cursor.fetchone()
+    assert result[0] == 0
