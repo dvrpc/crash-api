@@ -1,6 +1,8 @@
 import calendar
+import os
 from typing import Dict, List, Union
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -8,7 +10,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import psycopg2
 
-from config import PSQL_CREDS
+load_dotenv()
+DB_USER = os.environ.get("DB_USER")
+DB_PASS = os.environ.get("DB_PASS")
+DB_PORT = os.environ.get("DB_PORT")
+DB_HOST = os.environ.get("DB_HOST")
+DB_NAME = os.environ.get("DB_NAME")
 
 
 class CrashResponse(BaseModel):
@@ -81,7 +88,9 @@ def custom_openapi():
 
 
 def get_db_cursor():
-    connection = psycopg2.connect(PSQL_CREDS)
+    connection = psycopg2.connect(
+        dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT
+    )
     connection.autocommit = True
     return connection.cursor()
 

@@ -2,7 +2,7 @@ import pytest
 
 endpoint = "/api/crash-data/v1/crashes/"  # <id>
 
-from app import get_db_cursor
+from api.app import get_db_cursor
 
 
 def test_404_when_bad_id_param_provided(client):

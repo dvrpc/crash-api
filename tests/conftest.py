@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import app
+from api import app
 
 
 @pytest.fixture
 def client():
-    client = TestClient(app)
+    client = TestClient(app.app)
     return client

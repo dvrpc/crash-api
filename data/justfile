@@ -3,12 +3,12 @@ set dotenv-load
 # Run Python tests
 @test:
   echo "Running tests..."
-  cd ../api && ../api/ve/bin/python3 -m pytest -q
+  cd .. && ve/bin/python3 -m pytest -q
 
 # Add/update one year of data
 @update year: setup-venv && count-dups test dump-db create-csv-for-vec-tiles
   echo "Running data import script..."
-  ../api/ve/bin/python3 data_import.py --year {{ year }}   
+  ../ve/bin/python3 data_import.py --year {{ year }}   
 
 # Drop and recreate database
 [confirm("Are you sure you want to reset the database? The existing one will be dropped and recreated.")]
@@ -19,12 +19,12 @@ set dotenv-load
   PGPASSWORD=$DB_PASS psql -U $DB_USER -p $DB_PORT -h $DB_HOST -q crash < populate_geoid.sql
   PGPASSWORD=$DB_PASS psql -U $DB_USER -p $DB_PORT -h $DB_HOST -q crash < create_geom_index.sql
   echo "Running data import script..."
-  ../api/ve/bin/python3 data_import.py --reset-db
+  ../ve/bin/python3 data_import.py --reset-db
 
 [private]
 @setup-venv:
   cd ../api && python3 -m venv ve
-  ../api/ve/bin/pip3 install -r ../api/requirements.txt -q
+  ../ve/bin/pip3 install -r ../requirements.txt -q
   echo "Virtual environment successfully created/activiated."
 
 [private]

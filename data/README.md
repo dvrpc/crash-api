@@ -26,11 +26,11 @@ Create/update the database on your local machine, from the `data` directory of t
       2. `psql -U postgres crash < create_tables.sql`
       3. `psql -U postgres crash < populate_geoid.sql`
       4. `psql -U postgres crash < create_geom_index.sql`
-  2. Create/activate virtual environment and install requirements as needed:
+  2. Create/activate virtual environment at project root and install requirements:
       1. `python3 -m venv ve`
-      2. `. ../api/ve/bin/activate` (or wherever it's located)
+      2. `. ve/bin/activate`
       3. `pip install -r requirements.txt`
-  3. Run the import script: `python data_import.py`, calling it with one of two parameters:
+  3. From the data/ directory, run the import script: `python data_import.py`, calling it with one of two parameters:
       * `--year [YYYY]` to add/update date for a single year. The program will first delete all existing records for this year, so that updates can be made if corrections are necessary. e.g. `python data-import.py --year 2021`. It takes about 90 seconds to add one year of data.
       * `--reset-db` to wipe the database and import data for all years.
       * If duplicates.csv was generated, check it to confirm expectations.

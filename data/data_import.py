@@ -19,6 +19,7 @@ DB_USER = os.environ.get("DB_USER")
 DB_PASS = os.environ.get("DB_PASS")
 DB_PORT = os.environ.get("DB_PORT")
 DB_HOST = os.environ.get("DB_HOST")
+DB_NAME = os.environ.get("DB_NAME")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-y", "--year", type=int, help="Add or update data for a certain year.")
@@ -116,7 +117,7 @@ nj_collisions = {
 }
 
 # connect to postgres database
-con = psycopg2.connect(dbname="crash", user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT)
+con = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT)
 cur = con.cursor()
 
 # delete all existing records from db (previous data import)
