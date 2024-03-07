@@ -23,5 +23,3 @@ pip install -r requirements.txt
 The tests check both the database accuracy as well as the API functionality. Therefore, before running tests, follow the instructions in data/README.md to set up and populate a database.
 
 Then, within a virtual environment and from the project root, run `python -m pytest`. All tests in the tests/ directory will be executed.
-
-Testing auto deployment
