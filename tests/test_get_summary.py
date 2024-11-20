@@ -15,7 +15,8 @@ def test_unknown_geoid_return_404(client):
 
 
 @pytest.mark.parametrize(
-    "area,value", [("state", "CA"), ("county", "Allegheny"), ("municipality", "Erie City")],
+    "area,value",
+    [("state", "CA"), ("county", "Allegheny"), ("municipality", "Erie City")],
 )
 def test_unknown_values_return_404(client, area, value):
     response = client.get(endpoint + f"?{area}={value}")
@@ -365,6 +366,8 @@ def test_data_PA(client):
     y_18 = data["2018"]
     y_19 = data["2019"]
     y_20 = data["2020"]
+    y_21 = data["2021"]
+    y_22 = data["2022"]
 
     total_injured_18 = (
         y_18["severity"]["Suspected Serious Injury"]
@@ -449,6 +452,10 @@ def test_data_PA(client):
     assert y_19["Total crashes"] == 35992
     assert y_20["Total crashes"] == 29708
     assert y_20["severity"]["Fatality"] == 315
+    assert y_21["Total crashes"] == 33118
+    assert y_21["severity"]["Fatality"] == 286
+    assert y_22["Total crashes"] == 31686
+    assert y_22["severity"]["Fatality"] == 299
 
 
 def test_data_NJ(client):
@@ -461,15 +468,19 @@ def test_data_NJ(client):
     y_18 = data["2018"]
     y_19 = data["2019"]
     y_20 = data["2020"]
+    y_21 = data["2021"]
+    y_22 = data["2022"]
 
     assert y_14["Total crashes"] == 47664
     assert y_15["Total crashes"] == 44916
     assert y_16["Total crashes"] == 44438
     assert y_17["Total crashes"] == 44861
     assert y_18["Total crashes"] == 46183
-    assert y_19["Total crashes"] == 45864
-    assert y_20["Total crashes"] == 34166
-    assert y_20["severity"]["Fatality"] == 139
+    assert y_19["Total crashes"] == 44820
+    assert y_20["Total crashes"] == 33406
+    assert y_20["severity"]["Fatality"] == 136
+    assert y_21["Total crashes"] == 37141
+    assert y_22["Total crashes"] == 40177
 
 
 @pytest.mark.parametrize(
