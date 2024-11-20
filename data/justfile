@@ -25,7 +25,7 @@ set dotenv-load
 @setup-venv:
   cd ../api && python3 -m venv ve
   ../ve/bin/pip3 install -r ../requirements.txt -q
-  echo "Virtual environment successfully created/activiated."
+  echo "Virtual environment successfully created/activated."
 
 [private]
 @create-csv-for-vec-tiles:

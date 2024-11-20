@@ -28,26 +28,24 @@ parser.add_argument("--update-pa-mcds", action="store_true", default=False)
 args = parser.parse_args()
 
 # required files
-crash_geom_files = []  # these contain both states
+crash_geom_files = ["crash_geoms.csv"]
 pa_crash_files = []
 nj_accidents_files = []
 nj_pedestrians_files = []
 pa_mcdlist_file = "PA_2014-21_MCDlist.csv"
 
 if args.reset_db:
-    crash_geom_files.append("crash_geom_2014-20.csv")
-    crash_geom_files.append("crash_geom_2021.csv")
+    # crash_geom_files.append("crash_geoms.csv")
 
     pa_crash_files.append("PA_2014-20_CRASH.csv")
     pa_crash_files.append("PA_2021_CRASH.csv")
+    pa_crash_files.append("PA_2022_CRASH.csv")
 
     nj_accidents_files.append("NJ_2010-16_1_Accidents.csv")
-    nj_accidents_files.append("NJ_2017-20_1_Accidents.csv")
-    nj_accidents_files.append("NJ_2021_1_Accidents.csv")
+    nj_accidents_files.append("NJ_2017-22_1_Accidents.csv")
 
     nj_pedestrians_files.append("NJ_2010-16_4_Pedestrians.csv")
-    nj_pedestrians_files.append("NJ_2017-20_4_Pedestrians.csv")
-    nj_pedestrians_files.append("NJ_2021_4_Pedestrians.csv")
+    nj_pedestrians_files.append("NJ_2017-22_4_Pedestrians.csv")
 # update just the latest year
 else:
     if args.year is None:
@@ -143,6 +141,12 @@ for each in pa_crash_files:
     with open(each, newline="") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
         for row in reader:
+            # There are two sets of duplicates in the PA 2017-22 data, and the ones ignored
+            # here (by year and incorrect year) should just be ignored
+            if row["CRN"] == "2020085055" and row["CRASH_YEAR"] == "2021":
+                continue
+            elif row["CRN"] == "2018014440" and row["CRASH_YEAR"] == "2019":
+                continue
             try:
                 cur.execute(
                     """
@@ -197,9 +201,10 @@ for each in pa_crash_files:
 
 def insert_nj_accidents(filename: str):
     """Insert data from the NJ 1_accidents tables into db."""
-    with open(filename, newline="") as csvfile:
+    with open(filename, encoding="cp1252", newline="") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
         for row in reader:
+            print("")
             # get month and year from CrashDate field
             date = row["CrashDate"].split(" ")[0].split("/")
             month = int(date[0])

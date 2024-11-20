@@ -363,8 +363,6 @@ def get_summary(
 def get_crash_ids(geojson: str):
     """Get a list of crash ids based on given criteria."""
 
-    # @TODO: more ways to get this info in addition to by geojson
-
     cursor = get_db_cursor()
     query = """
         SELECT id
