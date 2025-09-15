@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-import psycopg2
+import psycopg
 
 load_dotenv()
 DB_USER = os.environ.get("DB_USER")
@@ -88,7 +88,7 @@ def custom_openapi():
 
 
 def get_db_cursor():
-    connection = psycopg2.connect(
+    connection = psycopg.connect(
         dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT
     )
     connection.autocommit = True
@@ -141,7 +141,7 @@ def get_crash(id: str):
 
     try:
         cursor.execute(query, [id])
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchone()
@@ -292,7 +292,7 @@ def get_summary(
 
     try:
         cursor.execute(severity_and_mode_query, values)
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchall()
@@ -344,7 +344,7 @@ def get_summary(
     # set total crashes = 0 if year not present, to make charting easier/provide additional info
     try:
         cursor.execute("SELECT DISTINCT(year) FROM crash")
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchall()
@@ -372,7 +372,7 @@ def get_crash_ids(geojson: str):
 
     try:
         cursor.execute(query, [geojson])
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchall()
