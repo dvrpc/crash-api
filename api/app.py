@@ -1,6 +1,6 @@
 import calendar
 import os
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
@@ -259,19 +259,25 @@ def get_summary(
         # get the name and area type for this geoid
         # this checks the geoid table, rather than the crash table, because the crash table
         # only has geoids at the municipality level.
-        cursor.execute("SELECT state, county, municipality from geoid where geoid = %s", [geoid])
-        result = cursor.fetchone()
-        if not result:
-            return JSONResponse(status_code=404, content={"message": "Given geoid not found."})
-        # now set up where clause
-        sub_clauses.append("state = %s")
-        values.append(result[0])
-        if result[1] is not None:
-            sub_clauses.append("county = %s")
-            values.append(result[1])
-        if result[2] is not None:
-            sub_clauses.append("municipality = %s")
-            values.append(result[2])
+        try:
+            cursor.execute(
+                "SELECT state, county, municipality from geoid where geoid = %s", [geoid]
+            )
+        except psycopg.errors.InvalidTextRepresentation:
+            return JSONResponse(status_code=400, content={"message": "Invalid geoid."})
+        else:
+            result = cursor.fetchone()
+            if not result:
+                return JSONResponse(status_code=404, content={"message": "Given geoid not found."})
+            # now set up where clause
+            sub_clauses.append("state = %s")
+            values.append(result[0])
+            if result[1] is not None:
+                sub_clauses.append("county = %s")
+                values.append(result[1])
+            if result[2] is not None:
+                sub_clauses.append("municipality = %s")
+                values.append(result[2])
     elif geojson:
         sub_clauses.append("ST_WITHIN(geom,ST_GeomFromGeoJSON(%s))")
         values.append(geojson)
