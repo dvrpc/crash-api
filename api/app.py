@@ -1,6 +1,6 @@
 import calendar
 import os
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-import psycopg2
+import psycopg
 
 load_dotenv()
 DB_USER = os.environ.get("DB_USER")
@@ -88,7 +88,7 @@ def custom_openapi():
 
 
 def get_db_cursor():
-    connection = psycopg2.connect(
+    connection = psycopg.connect(
         dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT
     )
     connection.autocommit = True
@@ -141,7 +141,7 @@ def get_crash(id: str):
 
     try:
         cursor.execute(query, [id])
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchone()
@@ -259,19 +259,25 @@ def get_summary(
         # get the name and area type for this geoid
         # this checks the geoid table, rather than the crash table, because the crash table
         # only has geoids at the municipality level.
-        cursor.execute("SELECT state, county, municipality from geoid where geoid = %s", [geoid])
-        result = cursor.fetchone()
-        if not result:
-            return JSONResponse(status_code=404, content={"message": "Given geoid not found."})
-        # now set up where clause
-        sub_clauses.append("state = %s")
-        values.append(result[0])
-        if result[1] is not None:
-            sub_clauses.append("county = %s")
-            values.append(result[1])
-        if result[2] is not None:
-            sub_clauses.append("municipality = %s")
-            values.append(result[2])
+        try:
+            cursor.execute(
+                "SELECT state, county, municipality from geoid where geoid = %s", [geoid]
+            )
+        except psycopg.errors.InvalidTextRepresentation:
+            return JSONResponse(status_code=400, content={"message": "Invalid geoid."})
+        else:
+            result = cursor.fetchone()
+            if not result:
+                return JSONResponse(status_code=404, content={"message": "Given geoid not found."})
+            # now set up where clause
+            sub_clauses.append("state = %s")
+            values.append(result[0])
+            if result[1] is not None:
+                sub_clauses.append("county = %s")
+                values.append(result[1])
+            if result[2] is not None:
+                sub_clauses.append("municipality = %s")
+                values.append(result[2])
     elif geojson:
         sub_clauses.append("ST_WITHIN(geom,ST_GeomFromGeoJSON(%s))")
         values.append(geojson)
@@ -292,7 +298,7 @@ def get_summary(
 
     try:
         cursor.execute(severity_and_mode_query, values)
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchall()
@@ -344,7 +350,7 @@ def get_summary(
     # set total crashes = 0 if year not present, to make charting easier/provide additional info
     try:
         cursor.execute("SELECT DISTINCT(year) FROM crash")
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchall()
@@ -372,7 +378,7 @@ def get_crash_ids(geojson: str):
 
     try:
         cursor.execute(query, [geojson])
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         return JSONResponse(status_code=400, content={"message": "Database error: " + str(e)})
 
     result = cursor.fetchall()
